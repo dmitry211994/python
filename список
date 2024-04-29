@@ -1,0 +1,11 @@
+import random
+List =  []
+for i in range (0,15):
+    a = random.randint(0,50)
+    List.append(a)
+List.sort()
+print(List)
+for i in range (100):
+    while List.count(i) > 1 :
+        List.remove(i)
+print(List)
