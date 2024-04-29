@@ -1,0 +1,14 @@
+from random import randint
+computer = randint(0, 100)
+count = 0
+print("Computer has chosen a number between 0 and 100")
+while True:
+    count += 1
+    player = int(input("Enter a guess: "))
+    if player < computer:
+        print("Your number is less that computer's")
+    elif player > computer:
+        print("Your number is greater that computer's")
+    else:
+        print("You won ! The computer's number is ", computer)
+        break
