@@ -1,0 +1,11 @@
+phone = input("Phone ")
+figures = {
+"1": "One",
+"2": "Two",
+"3": "Three"
+}
+output = ""
+for number in phone:
+    output = output + " " + figures.get(number)
+
+print(output)
