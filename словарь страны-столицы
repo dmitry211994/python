@@ -1,0 +1,12 @@
+CAPITALS = {'Ukrain': 'Kyiv', 'UK': 'London', 'Poland': 'Warsaw', 'Germany': 'Berlin', 'Italy': 'Rome'}
+print("To stop type 'end'")
+while True:
+        INPUT = input("Enter a city or a country: ")
+        if INPUT in CAPITALS.keys():
+                print(CAPITALS[INPUT])
+        elif INPUT == "end":
+                break
+        else:
+                for key, value in CAPITALS.items():
+                        if value == INPUT:
+                                print(key)
