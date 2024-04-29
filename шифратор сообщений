@@ -1,0 +1,64 @@
+import random
+
+def generate_key(length):
+    """Генерирует случайный ключ указанной длины"""
+    key = ""
+    for i in range(length):
+        key += chr(random.randint(1072, 1103))
+    return key
+
+def encrypt_vigenere(message, keys, iterations):
+    """Шифрует сообщение методом Виженера с использованием 4 ключей и разного количества итераций"""
+    result = ""
+    for i in range(len(message)):
+        key_index = i % 4 # выбираем ключ для данного символа
+        key = keys[key_index]
+        key_iterations = iterations[key_index]
+        char = message[i]
+        encrypted_char = encrypt_char_vigenere(char, key, key_iterations)
+        result += encrypted_char
+    return result
+
+def decrypt_vigenere(message, keys, iterations):
+    """Дешифрует сообщение, зашифрованное методом Виженера с использованием 4 ключей и разного количества итераций"""
+    result = ""
+    for i in range(len(message)):
+        key_index = i % 4 # выбираем ключ для данного символа
+        key = keys[key_index]
+        key_iterations = iterations[key_index]
+        char = message[i]
+        decrypted_char = decrypt_char_vigenere(char, key, key_iterations)
+        result += decrypted_char
+    return result
+
+def encrypt_char_vigenere(char, key, iterations):
+    """Шифрует символ методом Виженера с использованием указанного ключа и количества итераций"""
+    result = char
+    for i in range(iterations):
+        key_char = key[i % len(key)]
+        key_ord = ord(key_char)
+        result_ord = ord(result)
+        encrypted_ord = (result_ord + key_ord) % 256
+        result = chr(encrypted_ord)
+    return result
+
+def decrypt_char_vigenere(char, key, iterations):
+    """Дешифрует символ, зашифрованный методом Виженера с использованием указанного ключа и количества итераций"""
+    result = char
+    for i in range(iterations):
+        key_char = key[i % len(key)]
+        key_ord = ord(key_char)
+        result_ord = ord(result)
+        decrypted_ord = (result_ord - key_ord) % 256
+        result = chr(decrypted_ord)
+    return result
+
+# Пример использования
+message = "?@825B <8@"
+keys = [generate_key(16) for i in range(4)]
+iterations = [100, 200, 300, 400]
+encrypted_message = encrypt_vigenere(message, keys, iterations)
+print("Зашифрованное сообщение:", encrypted_message)
+decrypted_message = decrypt_vigenere(encrypted_message, keys, iterations)
+print("Расшифрованное сообщение:", decrypted_message)
+print(ord('а'), ord('я'))
