@@ -1,0 +1,10 @@
+students = {'1a': 19, '2b': 21, '3c': 15, '4a': 240, '5b': 27}
+
+students['1a'] = 30     #Изменение и внесение новых значений
+students['2b'] = 14
+students['3c'] = 22
+students['9a'] = 13
+students['10a'] = 10
+students.pop('4a')      #Удаление пары ключ-значение
+for key in students:            #вывод ключей и значений словаря в норм виде
+        print(key, students[key])
