@@ -1,0 +1,13 @@
+from random import randint
+
+
+class Dice:
+    def roll():
+        # print(f'({randint(1, 6)} ; {randint(1, 6)})', end="")
+        first = randint(1, 6)
+        second = randint(1, 6)
+        return first, second
+
+
+dice = Dice()
+print(Dice.roll())
