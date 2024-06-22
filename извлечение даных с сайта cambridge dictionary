@@ -1,0 +1,22 @@
+from bs4 import BeautifulSoup
+import requests
+import lxml
+
+url = 'https://dictionary.cambridge.org/'
+headers = { #заголовки нужны для того чтобы при постянном обращении к сайту он понимал что я человек а не бот
+    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+}
+#response = requests.get(url, headers = headers)
+#with open("cambridge.html", "w", encoding="utf-8-sig") as file:
+#    code = file.write(response.text)
+with open("cambridge.html", encoding="utf-8-sig") as file:
+    page_code = file.read()
+soup = BeautifulSoup(page_code, "lxml")
+
+all_a = soup.find("div", class_="pa p0 pl0 chsw lc1 lp-l_l-5 maxz").find("input")
+#<input autofocus aria-label="Search" spellcheck="false" type="text" name="q" autocomplete="off" autocapitalize="none" aria-required="true" aria-invalid="false" class="ft fon pr pt0 hbr-20 lc1 lp-10 lpl-15 cdo-search-input user-valid valid" id="searchword" lang="en" [placeholder]="stateSearch.dataset_search" value [value]="stateSearch.lookupWord" maxlength="100" placeholder="Search English–Russian" on="input-debounced: AMP.setState({ stateSearch: { term: event.value, autocomplete: (stateSearch.dataset != 'wordlists' && event.value.length) > 1 ? true : false } }), searchAutoComplete.changeToLayoutContainer();
+#                         tap:AMP.setState({ stateSearch: { autocomplete: stateSearch.dataset != 'wordlists' && stateSearch.term.length > 1 } })">
+#<div class="pa p0 pl0 chsw lc1 lp-l_l-5 maxz">
+print(all_a)
+print(all_a["placeholder"])
