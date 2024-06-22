@@ -1,0 +1,30 @@
+import psycopg2 as l
+
+host = "127.0.0.1"
+password = "1324"
+user = "postgres"
+dbname = "praktika"
+
+connection = l.connect(
+    host = host,
+    password = password,
+    user = user,
+    database = dbname)
+
+cursor = connection.cursor()
+# запрос 1
+cursor.execute("select distinct train_number from trains")
+for c in cursor.fetchall():
+    print(c[0])
+# запрос 2
+cursor.execute("select distinct train_number, travel_time from trains")
+for c in cursor.fetchall():
+    print(f"{c[0]}, {c[1]}")
+#запрос 3
+train_number = '№ 001Э'
+cursor.execute("select departure_date, arrival_date from trains where train_number = '" + train_number + "'")
+for c in cursor.fetchall():
+    print(f"{c[0]}, {c[1]}")
+connection.commit()
+cursor.close()
+connection.close()
