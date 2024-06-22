@@ -1,0 +1,64 @@
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+urls = ["https://xn----btbhgbpv1d7d.xn--80aswg/kupit-zhd-bilety/#/vladivostok/moskva?date=11.07.2024",
+        "https://xn----btbhgbpv1d7d.xn--80aswg/kupit-zhd-bilety/#/vladivostok/moskva?date=12.07.2024",
+        "https://xn----btbhgbpv1d7d.xn--80aswg/kupit-zhd-bilety/#/vladivostok/moskva?date=13.07.2024"]
+#драйвер
+
+# Инициализируем WebDriver
+driver = webdriver.Chrome()
+for m in range(3):
+    # Открываем страницу
+    driver.get(urls[m])
+    wait = WebDriverWait(driver, 10)  # Ожидание до 10 секунд
+    wait.until(EC.visibility_of_element_located((By.XPATH, './/span[@class="wg-train-info__number-link"]')))
+    # Сохраняем HTML-код в файл
+    with open("text stranizy poezdov date" + str(m + 1) + ".html", "w", encoding="utf-8-sig") as qaz:
+        qaz.write(driver.page_source)
+
+# Закрываем браузер
+driver.quit()
+
+
+for n in range(3):
+    # Открываем файл HTML
+    with open("text stranizy poezdov date" + str(n + 1) + ".html", 'r', encoding='utf-8') as f:
+        html = f.read()
+
+    # Создаем объект BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # Используем BeautifulSoup для извлечения данных
+    train_numbers = soup.find_all('span', class_="wg-train-info__number-link")
+    #<span class="wg-train-info__number-link">№ 009Н</span>
+    travel_time = soup.find_all('span', class_="wg-track-info__duration-time")
+    #<span class="wg-track-info__duration-time">
+
+    departure_arrival_date = soup.find_all('span', class_="wg-track-info__date")
+    #<span class="wg-track-info__date">20 июня, чт</span>
+    # Каждый чётный элемент списка это дата отправления, нечётный - прибытия
+
+    # Перебираем элементы в списке
+    print("TRAIN NUMBERS")
+    for element in train_numbers:
+        text = element.text
+        print(text)
+    print("DEPARTURE AND ARRIVAL DATE")
+    index = 0
+    while (index != len(departure_arrival_date)):
+        if (index % 2 == 0):
+            print(f"departure date: {departure_arrival_date[index].text}")
+        else:
+            print(f"arrival date: {departure_arrival_date[index].text}")
+        index += 1
+    print("TRAVEL TIME")
+    for element in travel_time:
+        text = element.text
+        print(text)
+    print()
+    print("next date")
+    print()
