@@ -1,0 +1,25 @@
+from bs4 import BeautifulSoup
+import requests
+
+url = 'https://www.beesona.pro/songs/'
+headers = { #заголовки нужны для того чтобы при постянном обращении к сайту он понимал что я человек а не бот
+    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+}
+#response = requests.get(url, headers = headers)
+with open("text_stranizy_pesen", encoding="utf-8-sig") as file:
+    code = file.read()
+soup = BeautifulSoup(code, features="html.parser")
+#<a href="/songs/ddt/chto_takoe_osen.php" class="blueBig">ДДТ - Что такое осень</a>
+
+#r = soup.find_all("a", href="/songs/ddt/chto_takoe_osen.php", class_='"blueBig">ДДТ - Что такое осень')
+
+#r = soup.find_all("div", class_='m209')
+#for item in r:
+#    print(item) #вывод кода страницы
+
+r = soup.find_all("div", class_='x64')
+for item in r:
+    not_none = item.find("a", href="/songs/ddt/chto_takoe_osen.php")
+    if(not_none != None):
+        print(not_none.text) #вывод кода страницы
