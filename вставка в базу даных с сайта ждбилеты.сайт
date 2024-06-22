@@ -1,0 +1,46 @@
+import psycopg2 as l
+from bs4 import BeautifulSoup
+
+host = "127.0.0.1"
+password = "1324"
+user = "postgres"
+dbname = "praktika"
+
+connection = l.connect(
+    host = host,
+    password = password,
+    user = user,
+    database = dbname)
+fields = "id, train_number, departure_date, travel_time, arrival_date"
+cursor = connection.cursor()
+
+id = 0
+for n in range(3):
+    # Открываем файл HTML
+    with open("text stranizy poezdov date" + str(n + 1) + ".html", 'r', encoding='utf-8') as f:
+        html = f.read()
+
+    # Создаем объект BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # Используем BeautifulSoup для извлечения данных
+    train_numbers = soup.find_all('span', class_="wg-train-info__number-link")
+    #<span class="wg-train-info__number-link">№ 009Н</span>
+    travel_times = soup.find_all('span', class_="wg-track-info__duration-time")
+    #<span class="wg-track-info__duration-time">
+    departure_arrival_dates = soup.find_all('span', class_="wg-track-info__date")
+    #<span class="wg-track-info__date">20 июня, чт</span>
+    # Каждый чётный элемент списка это дата отправления, нечётный - прибытия
+    for r in range(len(train_numbers)):
+        train_number = train_numbers[r].text.strip()
+        departure_date = departure_arrival_dates[2*r].text.strip()
+        travel_time = travel_times[r].text.strip()
+        arrival_date = departure_arrival_dates[2*r+1].text.strip()
+        cursor.execute("INSERT INTO trains ("+fields+") VALUES (%s, %s, %s, %s, %s);",
+                         (id, train_number, departure_date, travel_time, arrival_date))
+        id += 1
+
+connection.commit()
+
+cursor.close()
+connection.close()
