@@ -1,0 +1,160 @@
+'''
+1.Реализовать наивный байесовский алгоритм
+2.Логистическая регрессия и обобщенная линейная модель
+3.Предсказанные значения в логистической регрессии
+4.Диагностика модели
+5.Оценивание моделей классификации
+6.ROC-кривая
+7.Стратегии в отношении несбалансированных данных
+'''
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+#наивный байесовский алгоритм
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+#логистическая регрессия
+import seaborn as sns
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+#рос кривая
+from sklearn.metrics import roc_curve
+
+from sklearn.metrics import mean_squared_error, r2_score
+#взвешенная регрессия
+import statsmodels.api as sm
+from scipy import stats
+from statistics import pvariance
+
+#наивный байесовский алгоритм
+
+#текст сообщения, класс: 0 - не спам, 1 - спам
+data = pd.DataFrame({
+    'message': [
+        'Hello, how are you?',
+        'Win a free prize now!',
+        'Meeting at 3 PM tomorrow',
+        'Limited offer only!',
+        'Let\'s grab a coffee',
+        'Urgent! Claim your reward',
+        'How about dinner tonight?',
+        'You won a gift card!',
+        'Don\t forget to call me!',
+        'Claim our new gift card'
+    ],
+    'label': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+})
+
+#разделение на обучающую и тестовую выборки
+X_train, X_test, y_train, y_test = train_test_split(
+    data['message'], data['label'], test_size=0.3, random_state=42
+)
+
+#преобразование текста в числовой формат (векторизация)
+vectorizer = CountVectorizer()
+'''
+ •  Здесь создается объект CountVectorizer. Этот класс из библиотеки scikit-learn предназначен для преобразования текстовых данных в матрицу частот слов (bag-of-words).
+  •  CountVectorizer создает словарь всех уникальных слов из обучающего набора текстов, а затем подсчитывает, сколько раз каждое слово встречается в каждом документе.
+'''
+X_train_vectorized = vectorizer.fit_transform(X_train)
+'''
+  •  Этот метод выполняет две операции:
+    *  fit(X_train): Сначала метод fit изучает текстовые данные из X_train (обучающая выборка) и строит словарь уникальных слов. Он определяет, какие слова присутствуют в тексте и какие индексы им соответствуют.
+    *  transform(X_train): Затем метод transform преобразует каждый текстовый документ в вектор, где каждый элемент вектора – это количество раз, когда конкретное слово (из словаря) встречается в этом документе. Эта матрица частот слов сохраняется в X_train_vectorized.
+    *  fit_transform делает оба действия за один раз.
+'''
+X_test_vectorized = vectorizer.transform(X_test)
+'''
+  •  Здесь мы используем уже обученный объект vectorizer, чтобы преобразовать тестовый набор данных (X_test) в числовое представление.
+'''
+
+#создание и обучение модели наивного байеса (MultinomialNB для текстовых данных)
+model = MultinomialNB()
+model.fit(X_train_vectorized, y_train)
+
+#оценка модели
+y_pred = model.predict(X_test_vectorized)
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Точность: {accuracy}')
+
+#использование модели для предсказания на новых данных
+new_messages = ["You have won", "Call me"]
+new_messages_vectorized = vectorizer.transform(new_messages)
+predictions = model.predict(new_messages_vectorized)
+print("Предсказание нового сообщения:", predictions)
+
+#логистическая регрессия
+
+#Предположим, у нас есть данные о возрасте и доходе людей, и мы хотим предсказать,
+#купят ли они товар (0 - не купят, 1 - купят).
+data = pd.DataFrame({
+    'age': [25, 30, 35, 40, 45, 50, 55, 60, 28, 33, 38, 42, 48, 52, 58],
+    'income': [30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 35000, 45000, 55000, 65000, 75000, 85000, 95000],
+    'purchase': [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1]
+})
+
+#разделение на признаки (X) и целевую переменную (y)
+X = data[['age', 'income']]
+y = data['purchase']
+
+#разделение на обучающую и тестовую выборки
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+#создание и обучение модели логистической регрессии
+model = LogisticRegression(solver='liblinear') # solver='lbfgs' так в документации написано
+model.fit(X_train, y_train)
+
+#оценка модели
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Точность: {accuracy}')
+print(classification_report(y_test, y_pred))
+
+
+#матрица ошибок (показывает насколько хорошо матрица делает предстказания)
+cm = confusion_matrix(y_test, y_pred)
+'''
+Для чего нужна Confusion Matrix?
+
+1. Оценка производительности модели: Матрица ошибок позволяет оценить производительность модели классификации, выходя за рамки простой точности (accuracy). Она показывает, как модель справляется с предсказаниями для каждого класса в отдельности.
+2. Идентификация проблем: Матрица ошибок позволяет выявить, какие классы модель классифицирует хорошо, а с какими возникают проблемы. Это помогает понять слабые места модели.
+3. Выбор метрик: Различные метрики оценки (precision, recall, F1-score) могут быть вычислены на основе данных из матрицы ошибок. Выбор метрики зависит от специфики задачи и того, какие ошибки наиболее критичны.
+4. Анализ ошибок: Матрица ошибок позволяет понять природу ошибок, которые делает модель. Например:
+  •  Несбалансированные данные: Если один класс встречается гораздо чаще, чем другой, модель может быть склонна предсказывать только более распространенный класс. Матрица ошибок покажет это.
+  •  Сложность разделения классов: Если между классами есть сильное перекрытие, модель может часто ошибаться. Матрица ошибок покажет, как много ошибок происходит в ту или иную сторону.
+'''
+plt.figure(figsize=(5, 3))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, xticklabels=['Покупки нет', 'Покупка есть'], yticklabels=['Покупки нет', 'Покупка есть'])
+plt.title("Матрица ошибок")
+plt.xlabel("Предсказанная метка")
+plt.ylabel("Настоящая метка")
+plt.show()
+
+#использование модели для предсказания на новых данных
+new_data = pd.DataFrame({
+    'age': [32, 47],
+    'income': [48000, 72000]
+})
+predictions = model.predict(new_data)
+print("Предсказания для новых данных (0 - не спам, 1 - спам):", predictions)
+
+#предсказание вероятностей
+y_probs = model.predict_proba(X_test)[:, 1]
+
+#вычисление ROC-кривой
+fpr, tpr, thresholds = roc_curve(y_test, y_probs)
+
+#построение ROC-кривой
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC кривая')
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlabel('False Positive Rate (FPR)')
+plt.ylabel('True Positive Rate (TPR)')
+plt.title('Кривая рабочих характеристик приемника (ROC)')
+plt.legend(loc="lower right")
+plt.show()
