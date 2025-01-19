@@ -1,0 +1,103 @@
+'''
+1. Задача: предсказание невозврата ссуды
+2. Создайте признак, который представляет кредитоспособность заемщика
+3.Сгенерируйте структурно распечатанную версию дерева
+4.Алгоритм рекурсивного сегментирования
+5.Постройте график предсказанных исходов из случайного леса применительно к данным о невозвратных ссудах
+6.Выполните подгонку модели к данным о невозвратных ссудах
+7.Постройте график предсказанных исходов из XGBoost применительно к данным о невозвратных ссудах
+8.Выполните подгонку xgboost к данным о ссудах для тренировочного набора со всеми включенными в модель переменными
+9.Гиперпараметры и перекрестная проверка
+'''
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+#визуализация дерева
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+
+# Оценка точности
+from sklearn.metrics import accuracy_score
+# гиперпараметры
+from sklearn.model_selection import GridSearchCV
+
+#XGB boost
+import xgboost as xgb
+
+#доход и долг заёмщика, метка: 0 - не вернул, 1 - вернул
+data = pd.DataFrame({
+    'income': [30000, 46000, 32000, 23000, 54000, 67000, 39000, 50000, 82000, 84000, 93000, 19000, 24000, 65000], #14
+    'dept': [103000, 60000, 1000000, 400000, 430000, 900000, 1200000, 10000, 345000, 241000, 800000, 791000, 3000000, 40000],
+    'label': [1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1]
+})
+#добавление нового признака на основе дохода и долга
+creditworthiness = [] #Debt-to-income ratio, DTI отношение долга к доходу
+for y in range(len(data['income'])):
+    creditworthiness.append(data['dept'][y]/data['income'][y])
+data['creditworthiness'] = creditworthiness
+
+X = data[['creditworthiness']] # Создание DataFrame для признаков
+y = data['label'] # и для целевой переменной
+
+#разделение на обучающую и тестовую выборки
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+#создание модели
+clf = DecisionTreeClassifier(random_state=42)
+#обучение модели
+clf.fit(X_train, y_train)
+
+# # Визуализация дерева с помощью graphviz
+# dot_data = export_graphviz(clf, out_file='tree.dot',
+#                 feature_names=['creditworthiness'],
+#                 class_names=['0', '1'],
+#                 filled=True, rounded=True,
+#                 special_characters=True)
+
+# Предсказание на тестовой выборке
+y_pred = clf.predict(X_test)
+
+# Оценка точности
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Точность модели DecisionTreeClassifier: {accuracy:.2f}")
+
+# Определение диапазона гиперпараметров
+param_grid = {
+    'max_depth': [3, 5, 7, 10], #глубина дерева
+    'min_samples_split': [2, 5, 10], #минимальное количество образцов для разделения узла
+    'min_samples_leaf': [1, 2, 4] #минимальное количество образцов в листе
+}
+
+# Поиск лучших гиперпараметров
+grid_search = GridSearchCV(estimator=clf, param_grid=param_grid, cv=2, scoring='accuracy')
+grid_search.fit(X_train, y_train)
+
+# Лучшие гиперпараметры
+best_params = grid_search.best_params_
+print(f"Лучшие гиперпараметры: {best_params}")
+
+#XGBoost
+
+#преобразование данных
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dtest = xgb.DMatrix(X_test, label=y_test)
+
+#гиперпараметры для модели
+params = {
+    'objective': 'binary:logistic',  # objective Определяет задачу обучения - для задачи бинарной классификации
+    'eval_metric': 'logloss',  # eval_metric Метрика, которая будет использоваться для оценки качества модели
+    # на этапе обучения.Функция потерь
+    'seed': 42
+}
+
+num_round = 10  # Количество деревьев, которые будут построены в процессе бустинга.
+xgb_model = xgb.train(params, dtrain, num_round) #Функция для обучения модели.
+
+# Предсказание
+y_pred_proba = xgb_model.predict(dtest)
+y_pred = [1 if prob > 0.5 else 0 for prob in y_pred_proba]
+
+#оценка качества модели
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Точность модели xgb_model: {accuracy}')
