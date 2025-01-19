@@ -1,0 +1,184 @@
+'''
+1. Выполнить PCA на доходности курса акций Chevron (CVX) и ExxonMobil (XOM)
+2.Отобразите на графике главные компоненты вместе с данными
+3. Визуализируйте относительную важность главных компонент (покажите нагрузки для верхних пяти главных компонент доходности курса акций)
+4. Найдите четыре кластера на основе двух переменных — доходности акций ExxonMobil (XOM) и Chevron (CVX)
+5. Визуализируйте кластеры
+6. Покажите средние значения переменных в каждом кластере ("центроиды")
+7.Постройте иерархическую кластеризацию к доходностям акций для ряда компаний
+8. Сравнение мер различия применительно к данным об акциях (на графике)
+9. Примените модельно-ориентированную кластеризацию к данным доходности акций
+10. BIC-оценки для данных о доходностях акций для разных количеств кластеров (компонент)
+11. Постройте график каменистой осыпи
+12. Постройте дендограмму hclust применительно к выборке данных о невозвратных ссудах с типами смешанных переменных
+'''
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+# Оценка точности
+from sklearn.metrics import accuracy_score
+#РСА
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+# кластеризация
+from sklearn.cluster import KMeans
+#иерархическая кластеризация
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+
+# данные
+data = pd.read_csv("sp500_data.csv")
+stock = data[['XOM', 'CVX']]  # Признаки
+
+# масштабирование данных
+scaler = StandardScaler()
+stock_scaled = scaler.fit_transform(stock)
+stock_scaled = pd.DataFrame(stock_scaled, columns=stock.columns)
+
+# 1 применение PCA
+pca = PCA(n_components=2)  # Выбор количества главных компонент
+stock_pca = pca.fit_transform(stock_scaled)
+stock_pca = pd.DataFrame(stock_pca, columns=['PC1', 'PC2'])  # Преобразуем в DataFrame
+
+# анализ результатов
+explained_variance = pca.explained_variance_ratio_
+print(f'Explained variance ratio: {explained_variance} доля дисперсии, объясняемая каждой главной компонентой')
+print(f'Components (нагрузки): {pca.components_}  матрица весов, показывающая, как исходные признаки влияют на каждую главную компоненту')
+'''
+  •  Нагрузка — это число, которое показывает, насколько сильно и в каком направлении каждый исходный признак влияет на значение главной компоненты.
+  •  Положительная нагрузка: Означает, что исходный признак и главная компонента имеют прямую зависимость. То есть, чем больше значение исходного признака, тем больше значение главной компоненты (и наоборот).
+  •  Отрицательная нагрузка: Означает, что исходный признак и главная компонента имеют обратную зависимость. То есть, чем больше значение исходного признака, тем меньше значение главной компоненты (и наоборот).
+  •  Нулевая или близкая к нулю нагрузка: Означает, что исходный признак не вносит существенного вклада в формирование главной компоненты.
+'''
+# 2 визуализация результатов
+plt.figure(figsize=(10, 6)) # Добавим размер графика для лучшего отображения
+plt.scatter(stock_scaled['XOM'], stock_scaled['CVX'], label='Исходные данные', alpha=0.5)  # исходные данные
+plt.scatter(stock_pca['PC1'], stock_pca['PC2'], label='Главные компоненты', marker='x', c='red')  # главные компоненты
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.title("Визуализация PCA")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# 3 визуализация нагрузок
+num_components_to_plot = min(2, pca.components_.shape[0])
+feature_names = ['XOM', 'CVX']
+
+plt.figure(figsize=(10, 6))
+for i in range(num_components_to_plot):
+  loadings = pca.components_[i]
+  plt.bar(feature_names, np.abs(loadings), label=f'PC{i + 1}')
+
+plt.title("Нагрузки главных компонент (абсолютные значения)")
+plt.ylabel("Абсолютное значение нагрузки")
+plt.xlabel("Исходные признаки")
+plt.legend()
+plt.grid(axis='y')
+plt.show()
+
+
+# 4 кластеризация
+kmeans = KMeans(n_clusters=4, random_state=42, n_init = 'auto')  # выбор 4 кластеров
+# oбучаем модель на масштабированных данных и получаем метки кластеров для каждой точки
+clusters = kmeans.fit_predict(stock_scaled) # применение кластеризации к масштабированным данным
+# добавление столбца кластеров к исходным данным
+stock_with_clusters = stock.copy()  # копируем чтобы не изменять исходные данные
+stock_with_clusters['Cluster'] = clusters
+
+# 5 визуализация кластеров
+plt.figure(figsize=(10, 6))
+#cтроим график рассеяния с раскраской точек по кластерам.
+sns.scatterplot(x='XOM', y='CVX', hue='Cluster', data=stock_with_clusters, palette='viridis')
+plt.title('Кластеры XOM и CVX')
+plt.xlabel('Доходность XOM')
+plt.ylabel('Доходность CVX')
+plt.legend(title='Кластер')
+plt.grid(True)
+plt.show()
+
+# 6 вывод центроидов
+centroids = pd.DataFrame(scaler.inverse_transform(kmeans.cluster_centers_), columns=stock.columns)
+# kmeans.cluster_centers_ содержит координаты центроидов в масштабированном пространстве.
+# scaler.inverse_transform(kmeans.cluster_centers_) возвращает центроиды в исходные масштабы.
+# stock_with_clusters.groupby('Cluster').mean() Группирует данные по кластерам и вычисляет
+# среднее значение для каждого кластера.
+print("Центроиды кластеров:")
+print(centroids)
+
+# вывод средних значений переменных в каждом кластере
+cluster_means = stock_with_clusters.groupby('Cluster').mean()
+print("\nСредние значения переменных в каждом кластере:")
+print(cluster_means)
+
+# 7 иерархическая кластеризация
+'''
+Иерархическая кластеризация — это метод кластеризации, который строит иерархию кластеров.
+В отличие от K-средних, который разделяет данные на заданное количество кластеров,
+иерархическая кластеризация создает структуру вложенных кластеров.
+'''
+#вычисление матрицы связывания с помощью single linkage и евклидовой метрики
+linked = linkage(stock_scaled, method='single', metric='euclidean')
+# method='single' указывает на использование метода одиночной связи
+# metric='euclidean' - на использование евклидовой метрики
+
+#построение дендограммы
+plt.figure(figsize=(10, 7))
+dendrogram(linked,
+           orientation='top', #дерево будет ориентировано вертикально
+           labels=stock.index, #использует индексы как метки для листьев
+           distance_sort='descending',
+           show_leaf_counts=True)
+plt.title('Дендрограмма иерархической кластеризации')
+plt.show()
+
+threshold = 1.8 #выбор порога для разбиения на кластеры
+# Формирование кластеров на основе дендрограммы и порога
+clusters = fcluster(linked, t=threshold, criterion='distance')
+
+# Добавляем метки кластеров к исходным данным
+stock_with_clusters_hierarchical = stock.copy()  # Копируем чтобы не изменять исходные данные
+stock_with_clusters_hierarchical['Cluster'] = clusters
+
+#визуализация кластеров
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='XOM', y='CVX', hue='Cluster', data=stock_with_clusters_hierarchical,
+                palette='viridis')
+plt.title('Кластеры иерархической кластеризации')
+plt.xlabel('Доходность XOM')
+plt.ylabel('Доходность CVX')
+plt.legend(title='Кластер')
+plt.grid(True)
+plt.show()
+
+#вывод средних значений переменных в каждом кластере
+cluster_means = stock_with_clusters_hierarchical.groupby('Cluster').mean()
+print("\nСредние значения переменных в каждом кластере:")
+print(cluster_means)
+
+# 11 график каменистой осыпи
+'''
+График каменистой осыпи (scree plot) используется для визуализации дисперсии, объясняемой каждой главной компонентой.
+Этот график поможет нам понять, сколько компонент достаточно для адекватного представления данных.
+1. Оси графика:
+  •  Ось X: Представляет номер главной компоненты. Первая главная компонента (PC1) соответствует самой большой дисперсии в данных, вторая (PC2) — второй по величине, и так далее.
+  •  Ось Y: Показывает долю дисперсии (или собственные значения), объясняемую каждой главной компонентой. Это значение, содержащееся в массиве explained_variance.
+
+2. Форма графика:
+  •  Спад: Обычно график каменистой осыпи имеет форму убывающей кривой. Это происходит потому, что первые несколько главных компонент обычно объясняют большую часть дисперсии данных, и последующие компоненты несут все меньше и меньше полезной информации.
+  •  "Камень": По виду график похож на склон горы с отдельным "камнем" (или уступом). "Камень" соответствует точкам перегиба, где уменьшение дисперсии между главными компонентами замедляется.
+  •  Плато: За "камнем" обычно следует более пологая часть графика, где дисперсия между главными компонентами относительно невелика.
+'''
+pca_full = PCA()  #вычисляем все главные компоненты (а не только 2 как в задаче 1)
+pca_full.fit(stock_scaled)
+explained_variance = pca_full.explained_variance_ratio_
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, len(explained_variance) + 1), explained_variance, marker='o')
+plt.xlabel('Главная компонента')
+plt.ylabel('Объясненная дисперсия')
+plt.title('График каменистой осыпи')
+plt.grid(True)
+plt.show()
