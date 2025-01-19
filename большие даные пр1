@@ -1,0 +1,111 @@
+import csv
+import numpy as np
+from scipy import stats
+import statistics
+from statsmodels import robust
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+def loaddata(filename):
+    mylist = []
+    with open(filename) as csvfile:
+        data = csv.reader(csvfile)
+        next(data) #skip the header
+        for row in data:
+            mylist.append(row)
+        return mylist
+
+
+def population(biglist):
+    functionlist = []
+    for list in biglist:
+        functionlist.append(int(list[1]))
+    return functionlist
+
+
+def kill(biglist):
+    functionlist = []
+    for list in biglist:
+        functionlist.append(float(list[2]))
+    return functionlist
+
+
+newlist = loaddata('state.csv')
+populationlist = population(newlist)
+killlist = kill(newlist)
+print("среднее населения")
+print(sum(populationlist) / len(populationlist))
+print("усечённое среднее населения")
+print(stats.trim_mean(populationlist, 0.1))
+print("медиана")
+print(statistics.median(populationlist))
+print("стандартное отклонение")
+print(statistics.stdev(populationlist))
+print("межквартильный размах")
+q1, q3 = np.percentile(populationlist, [75, 25])
+razmah = q1-q3
+print(razmah)
+print("медианное абсолютное отклонение от медианы")
+print(robust.mad(populationlist))
+print("процентили убийств по штатам")
+percentils = [5, 25, 50, 75, 95]
+percentile_list = np.percentile(killlist, percentils)
+for e in range(len(percentile_list)):
+    print(f'{percentils[e]}%, {percentile_list[e]}')
+print("коробчатая диаграмма населения")
+populationlist_forboxplot = []
+for i in range (len(populationlist)):
+    populationlist_forboxplot.append(populationlist[i]/1000000)
+sns.boxplot(populationlist_forboxplot)
+plt.show()
+'''
+import pandas as pd
+from prettytable import PrettyTable
+
+# for row in newlist:
+#     print(row)
+
+print("Частотная таблица численности населения по штатам")
+table = PrettyTable()
+table.field_names = ["№ Интэрвала", "Диапазон интэрвала", "Количество", "Штаты"]
+intervals = ["563626 - 4232658",
+             "4232659 - 7901691",
+             "7901692 - 11570724",
+             "11570725 - 15239757",
+             "15239758 - 18908790",
+             "18908791 - 22577823",
+             "22577824 - 26246856",
+             "26246857 - 29915889",
+             "29915890 - 33584922",
+             "33584923 - 37253956"]
+for b in range(len(intervals)):
+    table.add_row([b, intervals[b], 0, 0])
+print(table)
+
+print("столбчатая диаграмма Процент задержек в аэропорту Даллас–Форт-Уэрт")
+delays_loaded = loaddata("dfw_airline.csv")
+delays = []
+for a in range(len(delays_loaded[0])):
+    delays.append(float(delays_loaded[0][a]))
+
+delayspercent = [delay / sum(delays) for delay in delays]
+index = ["Carrier", "ATC", "Weather", "Security", "Inbound"]
+values = delayspercent
+plt.bar(index,values)
+plt.show()
+
+
+data = {
+    'Region': ['North', 'South', 'East', 'West'],
+    'Sales': [200, 150, 300, 250],
+    'Advertising': [50, 40, 70, 60]
+}
+
+df = pd.DataFrame(data)
+print(df)
+correlation = df['Sales'].corr(df['Advertising'])
+print(f'Корреляция между продажами и рекламой: {correlation}')
+
+correlation_matrix = df.corr()
+'''
