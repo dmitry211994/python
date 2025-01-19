@@ -1,0 +1,112 @@
+'''
+- Построить гистограммы для трёх выборок: с 1000 значениями,  с 1000 средними из 5 значений
+и с 1000 средними из 20 значений.
+- Построить бутстраповский доверительный интервал для годового дохода ссудозаявителей на основе выборки из 20 значений
+- Построить квантиль-квантильный график выборки из 100 значений, извлеченных из нормального распределения
+- Построить квантиль-квантильный график ежедневной доходности акций
+- Реализовать одно из распределений (нормальное, Пуассона, Стьюдента, длиннохвостое, биномиальное, экспоненциальное и др)
+'''
+import csv
+import numpy as np
+from scipy import stats
+import statistics
+from scipy.stats import norm
+from statsmodels import robust
+from statsmodels.api import qqplot
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from sklearn.utils import resample
+
+#гистограмы
+
+loans_income = pd.read_csv("loans_income.csv").squeeze()
+# .squeeze() значит преврашение датафрэйма из матрицы в столбец чисел
+
+initialdf = pd.DataFrame({
+    'доход': loans_income.sample(1000),
+    'тип': 'исходные данные'})
+meanof5 = pd.DataFrame({
+    'доход': [loans_income.sample(5).mean() for b in range(1000)],
+    'тип': 'среднее 5'})
+meanof20 = pd.DataFrame({
+    'доход': [loans_income.sample(20).mean() for b in range(1000)],
+    'тип': 'среднее 20'})
+results = pd.concat([initialdf, meanof5, meanof20])
+# print(results.sample(30))
+
+g = sns.FacetGrid(results, col='тип', col_wrap=1, height=2, aspect=2)
+g.map(plt.hist, 'доход', range=[0, 200000], bins=40)
+g.set_axis_labels('доход', 'количество')
+g.set_titles('{col_name}')
+
+plt.tight_layout()
+plt.show()
+
+#доверительные интэрвалы
+
+# создать выборку из 20 данных о доходах по кредитам
+sample20 = resample(loans_income, n_samples=20, replace=True)
+print(f'доверительный интэрвал среднее из 20: {sample20.mean()}')
+results = []
+for o in range(500):
+    sample = resample(sample20)
+    results.append(sample.mean()) #запись среднего выборки в список
+results = pd.Series(results) #преврашение датафрэйма из матрицы в колонку
+
+#рисование графика
+confidence_interval = list(results.quantile([0.05, 0.95])) #доверительный интэрвал от 5-го квантиля до 95-го
+ax = results.plot.hist(bins=30, figsize=(4, 3))
+ax.plot(confidence_interval, [55, 55], color='black')
+for x in confidence_interval:
+    ax.plot([x, x], [0, 65], color='black')
+    ax.text(x, 70, f'{x:.0f}',
+            horizontalalignment='center', verticalalignment='center')
+ax.text(sum(confidence_interval) / 2, 60, '90 процентный интэрвал',
+        horizontalalignment='center', verticalalignment='center')
+
+meanIncome = results.mean()
+ax.plot([meanIncome, meanIncome], [0, 50], color='black', linestyle='-')
+ax.text(meanIncome, 10, f'среднее: {meanIncome:.0f}',
+        bbox=dict(facecolor='white', edgecolor='white', alpha=0.5),
+        horizontalalignment='center', verticalalignment='center')
+ax.set_ylim(0, 80)
+ax.set_ylabel('Количество')
+
+plt.tight_layout()
+# автоматическая корректировка расположения элементов графика (подписей осей, заголовка, легенды)
+# таким образом, чтобы они не перекрывали друг друга и не выходили за пределы графика.
+plt.show()
+
+# квантиль-квантильный график выборки из 100 значений из нормального распределения
+
+normal_data = np.random.normal(0,1, 100)
+
+qqplot(normal_data, line='45')
+plt.show()
+
+# квантиль-квантильный график ежедневной доходности акций
+
+stock_income = pd.read_csv("sp500_data.csv")
+qqplot(stock_income.NFLX, line='45')
+plt.title("Квантиль-квантильный график ежедневной доходности акций netflix")
+plt.xlabel("Теоритические квантили")
+plt.ylabel("Квантили выборки")
+plt.show()
+
+# нормальное распределение
+
+mean = 5  # среднее значение
+standarddeviation = 3  # стандартное отклонение
+# массив значений x для графика
+x = np.linspace(mean - 3 * standarddeviation, mean + 3 * standarddeviation, 100)
+# Return 100 evenly spaced numbers over a specified interval.
+
+# плотность вероятности для каждого значения x
+y = norm.pdf(x, mean, standarddeviation)
+
+plt.plot(x, y)
+plt.title("Нормальное распределение")
+plt.xlabel("x")
+plt.ylabel("Плотность вероятности")
+plt.show()
