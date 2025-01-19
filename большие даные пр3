@@ -1,0 +1,130 @@
+'''
+1. Сравните времена сеансов при помощи парных коробчатых диаграмм.
+Покажите в виде гистограммы перераспределение разниц во временах сеансов шаг = 0.5 строй разницу между а и б по модулю
+Создайте гистограмму произвольно перестановленных разниц в уровне конверсии
+2. Проверка на основе t-статистики
+3. Реализуйте процедуру ANOVA:
+Объединить все данные в одной коробке. построить обе страницы в одной коробчатой диаграме
+Случайным образом вынуть четыре повторных выборки (бутстрап) с пятью значениями для каждой.
+Записать среднее значение каждой из четырех групп.
+Записать дисперсию среди средних значений четырех групп.
+Повторить шаги 2–4 множество раз (скажем, 1000). зациклить то есть это значит
+4. Точная проверка Фишера и хи-квадрат
+для критэрия фишера возьми 2 гипотезы и проверь какая выполняется. там для этого критэрия фишера требуется
+таблица 2 на 2. гипотезы типа страница А посещается чаще чем страница В.
+из бутстрапа не бери так там страницы перемешаны. надо короче сравнить страницу а со страницей б. времена посещения
+'''
+
+import numpy as np
+from scipy.stats import chi2_contingency #хи квадрат
+import matplotlib.pyplot as plt
+import pandas as pd
+from scipy import stats
+from statistics import pvariance
+
+web_page_data = pd.read_csv("web_page_data.csv")
+
+#парные коробчатые диаграмы
+
+axes = web_page_data.boxplot(by = "Page", column = "Time", figsize = (5,5))
+#by и column указывают что диаграмма размаха должна быть построена для каждой группы данных в столбце Page
+#по значению столбца Time, figsize - размер окна в дюймах
+axes.set_ylabel("время")
+
+plt.title("1. парные коробчатые диаграмы")
+plt.tight_layout()
+plt.show()
+
+
+#гистограммa перераспределение разниц во временах сеансов не работает
+
+maximumtime = int(max(web_page_data.Time))+1 #3.57 -> 4
+
+pageAtime = web_page_data[web_page_data.Page == "Page A"].Time #pandas.series
+pageBtime = web_page_data[web_page_data.Page == "Page B"].Time
+
+grouped = web_page_data.groupby('Page')
+#группируем данные по страницам
+results = []
+#создаем интервалы для каждой страницы
+for page, data in grouped:
+  bins = range(0, int(data['Time'].max()) + 2, 1)
+  intervals = pd.cut(data['Time'], bins=bins, right=False, include_lowest=True)
+  data['Interval'] = intervals
+  results.append(data)
+#объединяем результаты
+final_df = pd.concat(results)
+print(final_df)
+
+bins = range(0, int(data['Time'].max()) + 2, 1)
+intervals = pd.cut(data['Time'], bins=bins, right=False, include_lowest=True)
+web_page_data.hist(column="Time", by=intervals)
+#FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+plt.suptitle('гистограмма перераспределения разниц во временах сеансов')
+plt.tight_layout()
+plt.show()
+
+
+#т-статистика
+
+t_stat, p_value = stats.ttest_ind(pageAtime, pageBtime)
+print(f"т-статистика: {t_stat}, р-значение: {p_value}")
+print("Небольшое значение т-статистики по модулю указывает на небольшую разницу между средними значениями двух выборок;\n"
+      "р-значение больше 0.05 следовательно нет статистически значимого различия между средними значениями двух групп данных")
+#print(web_page_data[web_page_data.Page == "Page A"])
+
+# АНОВА
+
+#Объединить все данные в одной коробке. построить обе страницы в одной коробчатой диаграме
+
+axes = web_page_data.boxplot(column = "Time", figsize = (5,5))
+axes.set_ylabel("время")
+plt.title("Объединить все данные в одной коробке")
+plt.tight_layout()
+plt.show()
+
+for d in range(1): #Повторить шаги 2–4 множество раз (скажем, 1000).
+    #Случайным образом вынуть четыре повторных выборки (бутстрап) с пятью значениями для каждой.
+    bootstrapsamples = []
+    for zxc in range(4): # 4 бутстрап-выборки
+      sample = web_page_data.sample(n=5, replace=True) # выборка из 5 строк с заменой
+      bootstrapsamples.append(sample)
+    
+    #Записать среднее значение каждой из четырех групп.
+    #Записать дисперсию среди средних значений четырех групп.
+    means = []
+    for i, sample in enumerate(bootstrapsamples):
+        time = sample.Time
+        print(f"Выборка {i+1}, её среднее время: {time.mean()} ")
+        means.append(time.mean())
+    print(f"Дисперсия средних значений: {pvariance(means)} \n")
+
+#хи квадрат для первого и второго бутстрапа
+pageBtime = web_page_data[web_page_data.Page == "Page B"].Time
+pageAtime = web_page_data[web_page_data.Page == "Page A"].Time
+#tablsopryajonosti = pd.crosstab(pageAtimepd,pageBtimepd) тут параметры должны быть одинаковой
+#длины списки поэтому список со страницей а надо порезать до длины списка страницы б - 15. 6 элементов убрать
+a = np.array(pageAtime)
+indices_to_remove = [15, 16, 17, 18, 19, 20]
+pageAtimepd = np.delete(a, indices_to_remove)
+pageBtimepd = np.array(pageBtime)
+
+tablsopryajonosti = pd.crosstab(pageAtimepd,pageBtimepd)
+chi2, p, dof, expected = chi2_contingency(tablsopryajonosti)
+stepenisvobod = (15-1)*(2-1)
+#Степени свободы для хи-квадрат рассчитываются с использованием следующей формулы: df = (r-1)(c-1)
+#r — количество строк, а c — количество столбцов
+print(f"степени свободы: {stepenisvobod}, критическое значение χ² = 23.685 \n χ²: {chi2}, p-значение: {p}")
+print("p-значение больше уровня значимости (0.05) значит нет статистически значимой зависимости между посещениями страниц")
+'''
+Значение χ² показывает, насколько наблюдаемые частоты отклоняются от ожидаемых частот,
+если бы гипотеза о независимости была верна.
+p-значение используется для принятия решения о значимости результата.
+Основное внимание следует уделить p-значению:
+Если p-значение меньше уровня значимости (0.05), то гипотеза о независимости отвергается
+и можно заключить, что существует статистически значимая связь между переменными.
+Если p-значение больше уровня значимости, то нет оснований отвергать гипотезу о независимости.
+p-значение показывает насколько похожие числа в таблице
+Как выглядит распределение хи квадрат – зависит от количества степеней свободы.
+Степени свободы – это количество величин, которые мы измеряем.
+'''
